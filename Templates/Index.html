@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video to MP3 Converter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #0f0c29);
+            background-size: 400% 400%;
+            animation: gradientBG 10s ease infinite;
+            color: white;
+            text-align: center;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 500px;
+            margin: auto;
+            padding: 50px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(255,255,255,0.8);
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            margin: 20px 0;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        label {
+            background: #ff007f;
+            padding: 12px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 20px #ff007f;
+            transition: 0.3s;
+        }
+
+        label:hover {
+            box-shadow: 0 0 40px #ff007f;
+            transform: scale(1.05);
+        }
+
+        .file-name {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0 5px;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff007f, #ff6600);
+            box-shadow: 0 0 15px #ff007f;
+            transition: width 0.4s ease;
+        }
+
+        .progress-text {
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .convert-btn {
+            background: #00ff99;
+            padding: 12px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+            color: #000;
+            font-weight: bold;
+            box-shadow: 0 0 20px #00ff99;
+            transition: 0.3s;
+        }
+
+        .convert-btn:hover {
+            box-shadow: 0 0 40px #00ff99;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Video to 🎵 MP3 Converter</h1>
+        
+        <div class="file-input">
+            <input type="file" id="videoFile" name="video" accept="video/*" onchange="showFileName()">
+            <label for="videoFile">Choose Video</label> <br><br>
+            <div class="file-name" id="fileName">No file chosen</div>
+        </div>
+
+        <div class="progress-text" id="progressText">Waiting to convert...</div>
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+
+       <br> <button class="convert-btn" onclick="startConversion()">Convert</button>
+    </div>
+
+    <script>
+        function showFileName() {
+            let fileInput = document.getElementById("videoFile");
+            let fileNameDisplay = document.getElementById("fileName");
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.textContent = fileInput.files[0].name;
+            }
+        }
+
+        function startConversion() {
+            let fileInput = document.getElementById("videoFile");
+            let progress = document.getElementById("progress");
+            let progressText = document.getElementById("progressText");
+
+            if (fileInput.files.length === 0) {
+                alert("Please choose a video file first!");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("video", fileInput.files[0]);
+
+            // Poll progress
+            let pollInterval = setInterval(() => {
+                fetch("/progress")
+                    .then(res => res.json())
+                    .then(data => {
+                        progress.style.width = data.progress + "%";
+                        progressText.textContent = `Converting ${data.progress}%`;
+                        if (data.progress >= 100) {
+                            clearInterval(pollInterval);
+                        }
+                    });
+            }, 500);
+
+            // Upload & get MP3
+            fetch("/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                let url = window.URL.createObjectURL(blob);
+                let a = document.createElement("a");
+                a.href = url;
+                a.download = fileInput.files[0].name.replace(/\.[^/.]+$/, ".mp3");
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                progressText.textContent = "✅ Conversion Complete!";
+            })
+            .catch(err => {
+                console.error("Error:", err);
+                progressText.textContent = "❌ Conversion failed!";
+            });
+        }
+    </script>
+</body>
+</html>
