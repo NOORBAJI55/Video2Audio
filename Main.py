@@ -58,7 +58,7 @@ def index():
             "Content-Type": "audio/mpeg"
         })
 
-    return render_template("Full_App.html")
+    return render_template("Index.html")
 
 @app.route("/progress")
 def get_progress():
